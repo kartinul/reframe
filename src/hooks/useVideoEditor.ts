@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { EditRecipe, ExportResult, ExportStatus, DEFAULT_RECIPE } from "@/lib/types";
-import { loadFFmpeg, exportVideo } from "@/lib/ffmpeg";
+import { loadFFmpeg, exportVideo, FFmpegLoadError } from "@/lib/ffmpeg";
 
 const DEFAULT_TITLE = "Reframe — Resize, trim, and export videos in your browser";
 
@@ -64,7 +64,11 @@ export function useVideoEditor() {
       setStatus("done");
     } catch (err) {
       console.error("export failed:", err);
-      setError(err instanceof Error ? err.message : "something went wrong");
+      if (err instanceof FFmpegLoadError) {
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "something went wrong");
+      }
       setStatus("error");
     }
   }, [file, recipe]);

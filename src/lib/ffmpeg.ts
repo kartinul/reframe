@@ -8,17 +8,33 @@ const CORE_BASE_URL =
 
 let ffmpegInstance: FFmpeg | null = null;
 
+/**
+ * Error thrown when the FFmpeg WebAssembly core fails to load.
+ * This typically happens when the user is offline, the CDN is unreachable (or if the url is wrong),
+ * or there are network interruptions during the initialization phase.
+ */
+export class FFmpegLoadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FFmpegLoadError";
+  }
+}
+
 export async function loadFFmpeg(): Promise<FFmpeg> {
   if (ffmpegInstance) return ffmpegInstance;
 
-  const ffmpeg = new FFmpeg();
-  await ffmpeg.load({
-    coreURL: await toBlobURL(`${CORE_BASE_URL}/ffmpeg-core.js`, "text/javascript"),
-    wasmURL: await toBlobURL(`${CORE_BASE_URL}/ffmpeg-core.wasm`, "application/wasm"),
-  });
+  try {
+    const ffmpeg = new FFmpeg();
+    await ffmpeg.load({
+      coreURL: await toBlobURL(`${CORE_BASE_URL}/ffmpeg-core.js`, "text/javascript"),
+      wasmURL: await toBlobURL(`${CORE_BASE_URL}/ffmpeg-core.wasm`, "application/wasm"),
+    });
 
-  ffmpegInstance = ffmpeg;
-  return ffmpeg;
+    ffmpegInstance = ffmpeg;
+    return ffmpeg;
+  } catch (error) {
+    throw new FFmpegLoadError("The ffmpeg cdn could not load. Please check your internet connection.");
+  }
 }
 
 function buildVideoFilter(recipe: EditRecipe, targetW: number, targetH: number): string {
